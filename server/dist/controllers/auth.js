@@ -46,7 +46,7 @@ const spotifyCallback = (req, res) => {
             .then((tokenRes) => {
             res.cookie("spotify_access_token", tokenRes.data.access_token);
             res.cookie("spotify_refresh_token", tokenRes.data.refresh_token);
-            res.redirect("/convert-apple");
+            res.send("hello nigga");
         })
             .catch((err) => {
             console.log(err);

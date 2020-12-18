@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import generateRandomString from "../utils/generateRandomString";
 import qs from "querystring";
-import axios, { AxiosResponse, AxiosError } from "axios";
+import { AxiosResponse, AxiosError } from "axios";
+import { getAuthToken, getSpotifyUser } from "../services/spotifyApi";
 
 export const spotifyLogin = (req: Request, res: Response): void => {
 	const state = generateRandomString(16);
@@ -27,30 +28,15 @@ export const spotifyCallback = (req: Request, res: Response): void => {
 	} else {
 		res.clearCookie("spotify_auth_state");
 
-		const data = qs.stringify({
-			code: <string>code,
-			redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
-			grant_type: "authorization_code",
-		});
-		const token = Buffer.from(
-			`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-		).toString("base64");
-
-		axios
-			.post("https://accounts.spotify.com/api/token", data, {
-				headers: {
-					Authorization: `Basic ${token}`,
-					"Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-					"Content-Length": Buffer.byteLength(data),
-				},
-			})
-			.then((tokenRes: AxiosResponse) => {
-				res.cookie("spotify_access_token", tokenRes.data.access_token);
-				res.cookie("spotify_refresh_token", tokenRes.data.refresh_token);
+		getAuthToken(<string>code)
+			.then((spotifyRes: AxiosResponse) => {
+				res.cookie("spotify_access_token", spotifyRes.data.access_token);
+				res.cookie("spotify_refresh_token", spotifyRes.data.refresh_token);
+				res.cookie("spotify_expires_in", <number>spotifyRes.data.expires_in)
 				res.redirect("/convert-apple");
 			})
-			.catch((err: AxiosError) => {
-				console.log(err);
+			.catch((spotifyErr: AxiosError) => {
+				console.log(spotifyErr.response);
 				res.redirect(
 					`/#${qs.stringify({
 						error: "invalid_token",
@@ -58,4 +44,14 @@ export const spotifyCallback = (req: Request, res: Response): void => {
 				);
 			});
 	}
+};
+
+export const spotifyMe = (req: Request, res: Response): void => {
+	const personalToken = req.cookies ? req.cookies["spotify_access_token"] : null;
+
+	getSpotifyUser(personalToken).then((spotifyRes: AxiosResponse) => {
+		console.log(spotifyRes.data);
+	}).catch((spotifyErr: AxiosError) => {
+		console.log(spotifyErr.response)
+	});
 };

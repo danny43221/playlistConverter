@@ -13,13 +13,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const path_1 = __importDefault(require("path"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const morgan_1 = __importDefault(require("morgan"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
 const SpotifyApi_1 = require("./services/SpotifyApi");
 const auth_1 = __importDefault(require("./routes/auth"));
-dotenv_1.default.config({ path: __dirname + "/config/config.env" });
+dotenv_1.default.config({ path: `${__dirname}/config/config.env` });
 SpotifyApi_1.initSpotifyClientCredentials();
 const app = express_1.default();
 app.use(cookie_parser_1.default());
@@ -27,7 +28,11 @@ app.use(cors_1.default());
 if (process.env.NODE_ENV === "development") {
     app.use(morgan_1.default("dev"));
 }
+app.use(express_1.default.static(`${__dirname}/../../client/build`));
 app.use("/api/auth", auth_1.default);
+app.get("*", (req, res) => {
+    res.sendFile(path_1.default.resolve(`${__dirname}/../../client/build/index.html`));
+});
 setTimeout(() => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const res = yield SpotifyApi_1.getSpotifyPlaylist("0WjvP1GLytqMXyMXgTuEOO");
